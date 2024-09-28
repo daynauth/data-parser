@@ -10,7 +10,14 @@ typedef enum json_type_{
 } json_type;
 
 typedef struct json_element_{
-
+    union{
+        double number;
+    } value;
 } json_element;
+
+typedef struct {
+    char string[255];
+    json_element *element;
+} json_member;
 
 #endif

@@ -3,7 +3,6 @@
 extern void parse(const char * string);
 
 int main(){
-    printf("Hello World\n");
-    parse("{}");
+    parse("    {\"age\" : 12 }");
 }
 
