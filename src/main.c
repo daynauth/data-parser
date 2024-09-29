@@ -3,6 +3,6 @@
 extern void parse(const char * string);
 
 int main(){
-    parse("    {\"age\" : 12 }");
+    parse("{}");
 }
 
