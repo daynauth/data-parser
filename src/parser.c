@@ -34,47 +34,47 @@ static void parse_element(const char * string){
 }
 
 void parse_number_element(const char * string){
-    double number = 0;
+    // double number = 0;
     
-    while(isdigit(tok)){
-        number = number * 10 + (tok - '0');
-        get_token(string);
-    }
-    if(tok == '.'){
-        double fraction = 0;
-        double weight = 0.1;
-        tok = get_token(string);
-        while(isdigit(tok)){
-            fraction += weight * (tok - '0');
-            weight *= 0.1;
-            tok = get_token(string);
-        }
-        number += fraction;
-    }
-    json_element * element = new_json_number_element(number);
-    json_add_element(j, element);
+    // while(isdigit(tok)){
+    //     number = number * 10 + (tok - '0');
+    //     get_token(string);
+    // }
+    // if(tok == '.'){
+    //     double fraction = 0;
+    //     double weight = 0.1;
+    //     tok = get_token(string);
+    //     while(isdigit(tok)){
+    //         fraction += weight * (tok - '0');
+    //         weight *= 0.1;
+    //         tok = get_token(string);
+    //     }
+    //     number += fraction;
+    // }
+    // json_element * element = new_json_number_element(number);
+    // json_add_element(j, element);
 }
 
 void parse_string_element(const char * string){
-    char buffer[255];
-    int i = 0;
-    while(1){
-        tok = get_token(string);
-        if(tok == '\"'){
-            break;
-        }
-        buffer[i++] = tok;
-    }
-    buffer[i] = '\0';
-    json_element * element = new_json_string_element(buffer, i);
-    json_add_element(j, element);
+    // char buffer[255];
+    // int i = 0;
+    // while(1){
+    //     tok = get_token(string);
+    //     if(tok == '\"'){
+    //         break;
+    //     }
+    //     buffer[i++] = tok;
+    // }
+    // buffer[i] = '\0';
+    // json_element * element = new_json_string_element(buffer);
+    // json_add_element(j, element);
 }
 
 
 void parse(const char * string){
     printf("%s\n", string);
     int ch = ' ';
-    j = new_json();
+
 
     while(1){
         if(is_end(string)){
@@ -100,6 +100,17 @@ void parse(const char * string){
         }
     }
 
-    json_print(j);
-    json_free(j);
+
+}
+
+void test(){
+    json_object jo = json_object_init();
+
+    json_object_add_number(&jo, "age", 23.1);
+    json_object_add_string(&jo, "name", "bruce wayne");
+    json_object_add_bool(&jo, "tall", 1);
+
+
+    json_object_print(&jo);
+    printf("\n");
 }
