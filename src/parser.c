@@ -4,7 +4,6 @@
 
 #include "json.h"
 
-static json * j = NULL;
 static int pos = 0;
 static int tok;
 
@@ -104,13 +103,26 @@ void parse(const char * string){
 }
 
 void test(){
-    json_object jo = json_object_init();
+    json_object jo = {};
 
-    json_object_add_number(&jo, "age", 23.1);
-    json_object_add_string(&jo, "name", "bruce wayne");
-    json_object_add_bool(&jo, "tall", 1);
+    json_object_add(&jo, "age", 23.1);
+    json_object_add(&jo, "name", "bruce wayne");
+    json_object_add(&jo, "tall", 0);
 
+
+    json_object jo2 = {};
+    json_object_add(&jo2, "address", "Gotham City");
 
     json_object_print(&jo);
     printf("\n");
+    json_object_print(&jo2);
+    printf("\n");
+
+    json_object jo3[] = {jo, jo2};
+    size_t length = sizeof(jo3) / sizeof(jo3[0]);
+
+    json_object jo4 = {};
+
+    json_object_add_array(&jo4, "people", jo3, length);
+    json_object_print(&jo4);
 }
