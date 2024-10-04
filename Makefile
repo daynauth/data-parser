@@ -1,18 +1,22 @@
-CC = gcc -std=c17 -I./include
+CFLAGS = -Wall -Wextra -std=c2x -g
+CC = clang  
+
+SOURCE_DIR = ./src
+BUILD_DIR = ./build
+
+C_SOURCES = $(wildcard $(SOURCE_DIR)/*.c)
+C_OBJECTS = $(patsubst $(SOURCE_DIR)/%.c, $(BUILD_DIR)/%.o, $(C_SOURCES))
+
+COMPILE = $(CC) $(CFLAGS) -I./include
+
 PROJECT=main
 all: $(PROJECT)
 
-json.o: ./src/json.c
-	$(CC) -c ./src/json.c -o json.o
+$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
+	$(COMPILE) -c $< -o $@
 
-parser.o: ./src/parser.c
-	$(CC) -c ./src/parser.c -o parser.o
-
-main.o: ./src/main.c
-	$(CC) -c ./src/main.c -o main.o
-
-$(PROJECT): main.o parser.o json.o
-	$(CC) main.o parser.o json.o -o $(PROJECT)
+$(PROJECT): $(C_OBJECTS)
+	$(COMPILE) $(C_OBJECTS) -o $(PROJECT)
 
 clean:
-	rm -rf $(PROJECT) main.o parser.o
+	rm -rf $(PROJECT) $(C_OBJECTS)

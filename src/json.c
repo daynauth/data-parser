@@ -26,6 +26,7 @@ static void print_array(FILE * fp, json_array array){
     printf("%d", array.length);
     fprintf(fp, "%c", LEFT_BRACKET);
     for(int i = 0; i < array.length; i++){
+        json_object_print(array.objects[i]);
         // json_object  object = *(array.objects[i]);
         // printf("%d", object.length);
         // printf("%d", array.objects[i]->length);
@@ -75,7 +76,7 @@ json_element * new_json_element(json_type type){
 
 // Json Element functions
 // Create an empty json element
-json_element json_element_init(){
+json_element json_element_init(void){
     return (json_element){};
 }
 
@@ -123,7 +124,7 @@ void json_object_add_error(json_object * jo, const char * string, void * value){
 // Working with Json Objects
 
 // Create an empty object
-json_object  json_object_init(){
+json_object  json_object_init(void){
     json_object object = {.length = 0, .element = NULL};
     return object;
 }
@@ -131,18 +132,15 @@ json_object  json_object_init(){
 
 void json_object_print(json_object *jo){
     fprintf(stdout, "%c", LEFT_PAREN);
-    for(int i = 0; i < jo->length; i++){
+    int i;
+    for(i = 0; i < jo->length; i++){
         json_element_print(&jo->element[i], stdout);
-        if(i < jo->length - 1){
+        if(i < (jo->length - 1)){
             fprintf(stdout, "%c ", COMMA);
         }
     }
 
     fprintf(stdout, "%c", RIGHT_PAREN);
-}
-
-void json_object_pretty_print(json_object *jo, int tab_size){
-    
 }
 
 void json_object_add_element(json_object * jo, json_element * element){
@@ -175,7 +173,5 @@ void json_object_add_object(json_object * jo, const char * string, json_object *
 
 void json_object_add_array(json_object * jo, const char * string, json_object array[], size_t length){
     json_element  element = json_element_object_array(string, &array, length);
-    printf("%d\n", element.value.array.length);
-    printf("%s\n", element.key);
     json_object_add_element(jo, &element);
 }

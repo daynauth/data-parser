@@ -61,7 +61,7 @@ typedef struct json_element{
 
 
 // Json Element functions
-json_element json_element_init();
+json_element json_element_init(void);
 json_element json_element_init_with_key(const char * key);
 json_element json_element_number(double number);
 json_element json_element_string(const char * string);
@@ -76,7 +76,7 @@ void json_element_print(json_element * element, FILE * fp);
 
 // Functions for working with a json object ... eg. {"age" : 24}
 // Creating an empty json object {}
-json_object json_object_init();
+json_object json_object_init(void);
 void json_object_print(json_object *jo);
 void json_object_add_element(json_object * jo, json_element * element);
 void json_object_add_string(json_object * jo, const char * string, const char * value);

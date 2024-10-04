@@ -3,6 +3,7 @@
 #include <ctype.h>
 
 #include "json.h"
+#include "parser.h"
 
 static int pos = 0;
 static int tok;
@@ -28,81 +29,7 @@ static int strip_ws(const char * string){
     return tok;
 }
 
-static void parse_element(const char * string){
-
-}
-
-void parse_number_element(const char * string){
-    // double number = 0;
-    
-    // while(isdigit(tok)){
-    //     number = number * 10 + (tok - '0');
-    //     get_token(string);
-    // }
-    // if(tok == '.'){
-    //     double fraction = 0;
-    //     double weight = 0.1;
-    //     tok = get_token(string);
-    //     while(isdigit(tok)){
-    //         fraction += weight * (tok - '0');
-    //         weight *= 0.1;
-    //         tok = get_token(string);
-    //     }
-    //     number += fraction;
-    // }
-    // json_element * element = new_json_number_element(number);
-    // json_add_element(j, element);
-}
-
-void parse_string_element(const char * string){
-    // char buffer[255];
-    // int i = 0;
-    // while(1){
-    //     tok = get_token(string);
-    //     if(tok == '\"'){
-    //         break;
-    //     }
-    //     buffer[i++] = tok;
-    // }
-    // buffer[i] = '\0';
-    // json_element * element = new_json_string_element(buffer);
-    // json_add_element(j, element);
-}
-
-
-void parse(const char * string){
-    printf("%s\n", string);
-    int ch = ' ';
-
-
-    while(1){
-        if(is_end(string)){
-            break;
-        }
-
-        ch = get_token(string);
-
-        switch(ch){
-            case '\"':
-                parse_string_element(string);
-                break;
-            case ' ':
-            case '\n':
-            case '\r':
-            case '\t':
-                break;
-            default:
-                if(isdigit(ch)){
-                    parse_number_element(string);
-                }
-                break;
-        }
-    }
-
-
-}
-
-void test(){
+void test(void){
     json_object jo = {};
 
     json_object_add(&jo, "age", 23.1);
@@ -114,9 +41,8 @@ void test(){
     json_object_add(&jo2, "address", "Gotham City");
 
     json_object_print(&jo);
-    printf("\n");
     json_object_print(&jo2);
-    printf("\n");
+
 
     json_object jo3[] = {jo, jo2};
     size_t length = sizeof(jo3) / sizeof(jo3[0]);

@@ -1,9 +1,8 @@
 #include <stdio.h>
+#include "endpoints.h"
+#include "parser.h"
 
-extern void parse(const char * string);
-extern void test();
-
-int main(){
+int main(void){
     // parse("{}");
     test();
 }
