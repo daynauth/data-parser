@@ -44,11 +44,11 @@ void test(void){
     json_object_print(&jo2);
 
 
-    json_object jo3[] = {jo, jo2};
+    json_object * jo3[] = {&jo, &jo2};
     size_t length = sizeof(jo3) / sizeof(jo3[0]);
 
     json_object jo4 = {};
 
-    json_object_add_array(&jo4, "people", jo3, length);
+    json_object_add_array(&jo4, "people", &jo3, length);
     json_object_print(&jo4);
 }

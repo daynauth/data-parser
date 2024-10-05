@@ -83,7 +83,7 @@ void json_object_add_string(json_object * jo, const char * string, const char * 
 void json_object_add_number(json_object * jo, const char * string, double value);
 void json_object_add_bool(json_object * jo, const char * string, int boolean);
 void json_object_add_object(json_object * jo, const char * string, json_object * object);
-void json_object_add_array(json_object * jo, const char * string, json_object * array, size_t length);
+void json_object_add_array(json_object * jo, const char * string, json_object ** array, size_t length);
 void json_object_add_error(json_object * jo, const char * string, void * value);
 
 #define json_object_add(jo, key, value) _Generic((value), \

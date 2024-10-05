@@ -171,7 +171,7 @@ void json_object_add_object(json_object * jo, const char * string, json_object *
     json_object_add_element(jo, &element);
 }
 
-void json_object_add_array(json_object * jo, const char * string, json_object array[], size_t length){
-    json_element  element = json_element_object_array(string, &array, length);
+void json_object_add_array(json_object * jo, const char * string, json_object ** array, size_t length){
+    json_element  element = json_element_object_array(string, array, length);
     json_object_add_element(jo, &element);
 }
