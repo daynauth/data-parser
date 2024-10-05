@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 
 // need for unicode
 // #include <wchar.h>
@@ -9,34 +10,53 @@
 #include "json.h"
 #include "parser.h"
 
-static int pos = 0;
-static int tok;
-
-static int is_end(const char  * string){
-    return string[pos] == EOF || string[pos] == '\0';
+static int end_of_string(int ch){
+    return ch == EOF || ch == '\0';
 }
 
-static int get_token(const char * string){
-    return string[pos++];
+static int get_length_of_string(const char * string){
+    int count = 0;
+    while(!end_of_string(string[count]))count++;
+
+    return count;
 }
 
-static int peek_token(const char * string){
-    return string[pos];
+Token_iterator * TokIter_New(const char * token_string){
+    Token_iterator * iter = malloc(sizeof(Token_iterator));
+    iter->token_string = token_string;
+    iter->current = 0;
+    iter->length = get_length_of_string(token_string);
+
+    return iter;
 }
 
-static int ws(const int ch){
-    return ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t';
+int TokIter_PeekNext(Token_iterator * iter){
+    return iter->token_string[iter->current];
 }
 
-static int strip_ws(const char * string){
-    int ch;
-
-    do{
-        ch = get_token(string);
-    }while(ws(ch));
-
-    return ch;
+int TokIter_Last(Token_iterator * iter){
+    return iter->token_string[iter->length - 1];
 }
+
+int TokIter_GetIndex(Token_iterator * iter){
+    return iter->current;
+}
+
+int TokIter_HasNext(Token_iterator * iter){
+    return iter->current < iter->length;
+}
+
+int TokIter_GrabNext(Token_iterator * iter){
+    return iter->token_string[iter->current++];
+}
+
+void TokITer_Free(Token_iterator * iter){
+    if(iter != NULL)
+        free(iter);
+}
+
+
+static Token_iterator * iter;
 
 /**
  * Determine if the character is a json character
@@ -50,42 +70,56 @@ static int is_json_char(const char ch){
  * Parse the json string for acii characters
  * TODO: implement a unicode parser
  */
-static char * parse_json_string(const char * string){
-    char * json_string;
-    return json_string;
-}
+static void parse_json_string(char ** key){
+    int start = TokIter_GetIndex(iter);
 
-static void parse_json_object(const char * string){
-    //get the key
-    int ch = strip_ws(string);
-    if(ch != '\"'){
-        fprintf(stderr, "token not recongized\n");
+    while(is_json_char(TokIter_PeekNext(iter))){
+        TokIter_GrabNext(iter);
     }
 
-    char * key = parse_json_string(string);
+    int length = TokIter_GetIndex(iter) - start;
+    *key = malloc(length + 1);
+    strncpy(*key, iter->token_string + start, length);
+    (*key)[length] = '\0';
+}
 
-    // int start = pos;
+static int match(int ch, int pattern, const char * message){
+    return ch == pattern? : fprintf(stderr, "%s\n", message);
+}
 
-    //unicode check
-    // setlocale(LC_CTYPE, "");
-    // wchar_t temp = 0x03A9;
-    // fwprintf(stdout, L"%lc\n", temp);
 
+//unicode check
+// setlocale(LC_CTYPE, "");
+// wchar_t temp = 0x03A9;
+// fwprintf(stdout, L"%lc\n", temp);
+static void parse_json_object(){
+    //get the key
+    char * key = NULL;
+    match(TokIter_GrabNext(iter), QUOTATION, "Opening quotation not found");
+    parse_json_string(&key);
+    match(TokIter_GrabNext(iter), QUOTATION, "Closing quotation not found");
+    
     //check for seperator
+    match(TokIter_GrabNext(iter), COLON, "Seperator not found");
+
     //get the value
     //check for closing brace
 }
 
 void parse_json(const char* string){
-    int ch = strip_ws(string);
+    iter = TokIter_New(string);
+
+    int ch = TokIter_GrabNext(iter);
+
     switch(ch){
         case '{':
-            parse_json_object(string);
+            parse_json_object();
             break;
         default:
             break;
     }
 
+    TokITer_Free(iter);
 }
 
 void test(void){
@@ -108,6 +142,6 @@ void test(void){
 
     json_object jo4 = {};
 
-    json_object_add_array(&jo4, "people", &jo3, length);
+    json_object_add_array(&jo4, "people", jo3, length);
     json_object_print(&jo4);
 }

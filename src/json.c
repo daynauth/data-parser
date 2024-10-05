@@ -9,12 +9,6 @@ static void print_string(FILE * fp, const char * string){
     fprintf(fp, "\"%s\"", string);
 }
 
-static void print_tab(FILE * fp, int size){
-    for(int i = 0; i < size; i++){
-        fprintf(fp, "%c", WS);
-    }
-}
-
 static void print_bool(FILE * fp, int boolean){
     if(boolean == 0)
         fprintf(fp, "false");
@@ -27,10 +21,6 @@ static void print_array(FILE * fp, json_array array){
     fprintf(fp, "%c", LEFT_BRACKET);
     for(int i = 0; i < array.length; i++){
         json_object_print(array.objects[i]);
-        // json_object  object = *(array.objects[i]);
-        // printf("%d", object.length);
-        // printf("%d", array.objects[i]->length);
-        // json_object_print(array.objects[i]);
         if(i < array.length - 1){
             fprintf(fp, "%c ", COMMA);
         }
@@ -117,9 +107,6 @@ json_element json_element_object_array(const char * key, json_object ** array, s
     return (json_element){.type = json_type_array, .key = (char *)key, .value.array = arr};
 }
 
-void json_object_add_error(json_object * jo, const char * string, void * value){
-    error("json_object_add_error: %s", string);
-}
 
 // Working with Json Objects
 

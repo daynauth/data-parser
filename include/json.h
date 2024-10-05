@@ -9,6 +9,7 @@
 #define RIGHT_BRACKET ']'
 #define COLON ':'
 #define COMMA ','
+#define QUOTATION '"'
 #define WS ' '
 
 
@@ -84,13 +85,12 @@ void json_object_add_number(json_object * jo, const char * string, double value)
 void json_object_add_bool(json_object * jo, const char * string, int boolean);
 void json_object_add_object(json_object * jo, const char * string, json_object * object);
 void json_object_add_array(json_object * jo, const char * string, json_object ** array, size_t length);
-void json_object_add_error(json_object * jo, const char * string, void * value);
+
 
 #define json_object_add(jo, key, value) _Generic((value), \
     char *: json_object_add_string, \
     double: json_object_add_number, \
-    int: json_object_add_bool, \
-    json_object *: json_object_add_error \
+    int: json_object_add_bool \
 )(jo, key, value)
 
 
