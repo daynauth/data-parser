@@ -3,7 +3,7 @@
 #include "parser.h"
 
 int main(void){
-    // parse("{}");
-    test();
+    parse_json("{\"age\", 23.1}");
+    // test();
 }
 

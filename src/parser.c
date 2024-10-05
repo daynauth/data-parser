@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+// need for unicode
+// #include <wchar.h>
+// #include <locale.h>
+
 #include "json.h"
 #include "parser.h"
 
@@ -13,7 +17,7 @@ static int is_end(const char  * string){
 }
 
 static int get_token(const char * string){
-    return tok = string[pos++];
+    return string[pos++];
 }
 
 static int peek_token(const char * string){
@@ -25,8 +29,63 @@ static int ws(const int ch){
 }
 
 static int strip_ws(const char * string){
-    while(ws(tok = get_token(string)));
-    return tok;
+    int ch;
+
+    do{
+        ch = get_token(string);
+    }while(ws(ch));
+
+    return ch;
+}
+
+/**
+ * Determine if the character is a json character
+ * TODO: implement test for unicode characters
+ */
+static int is_json_char(const char ch){
+    return isalpha(ch);
+}
+
+/**
+ * Parse the json string for acii characters
+ * TODO: implement a unicode parser
+ */
+static char * parse_json_string(const char * string){
+    char * json_string;
+    return json_string;
+}
+
+static void parse_json_object(const char * string){
+    //get the key
+    int ch = strip_ws(string);
+    if(ch != '\"'){
+        fprintf(stderr, "token not recongized\n");
+    }
+
+    char * key = parse_json_string(string);
+
+    // int start = pos;
+
+    //unicode check
+    // setlocale(LC_CTYPE, "");
+    // wchar_t temp = 0x03A9;
+    // fwprintf(stdout, L"%lc\n", temp);
+
+    //check for seperator
+    //get the value
+    //check for closing brace
+}
+
+void parse_json(const char* string){
+    int ch = strip_ws(string);
+    switch(ch){
+        case '{':
+            parse_json_object(string);
+            break;
+        default:
+            break;
+    }
+
 }
 
 void test(void){
