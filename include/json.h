@@ -10,7 +10,10 @@
 #define COLON ':'
 #define COMMA ','
 #define QUOTATION '"'
-#define WS ' '
+#define WS1 ' '
+#define WS2 '\t'
+#define WS3 '\n'
+#define WS4 '\r'
 
 
 #define error(...) fprintf(stderr, __VA_ARGS__); exit(EXIT_FAILURE);
@@ -46,6 +49,7 @@ typedef struct json_array{
     int length;
 } json_array;
 
+
 typedef struct json_element{
     json_type type;
     char * key;
@@ -57,6 +61,8 @@ typedef struct json_element{
         json_array array;
     } value;
 } json_element;
+
+#define json_value(type, value) (json_element){.type = type, .value = value}
 
 
 
@@ -90,7 +96,8 @@ void json_object_add_array(json_object * jo, const char * string, json_object **
 #define json_object_add(jo, key, value) _Generic((value), \
     char *: json_object_add_string, \
     double: json_object_add_number, \
-    int: json_object_add_bool \
+    int: json_object_add_bool, \
+    json_object *: json_object_add_object \
 )(jo, key, value)
 
 

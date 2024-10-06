@@ -4,6 +4,10 @@
 
 #include "json.h"
 
+static void print_literal(FILE * fp, const char * literal){
+    fprintf(fp, "%s", literal);
+}
+
 //help functions go here
 static void print_string(FILE * fp, const char * string){
     fprintf(fp, "\"%s\"", string);
@@ -32,8 +36,10 @@ void json_element_print(json_element * element, FILE * fp){
     if(element == NULL)
         return;
 
-    print_string(fp, element->key);
-    fprintf(fp, " %c ", COLON);
+    if(element->key != NULL){
+        print_string(fp, element->key);
+        fprintf(fp, " %c ", COLON);
+    }
 
     switch(element->type){
         case json_type_number:
@@ -50,6 +56,9 @@ void json_element_print(json_element * element, FILE * fp){
             break;
         case json_type_array:
             print_array(fp, element->value.array);
+            break;
+        case json_type_literal:
+            print_literal(fp, element->value.string);
             break;
         default:
             break;
