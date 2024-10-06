@@ -1,5 +1,5 @@
 CFLAGS = -Wall -Wextra -std=c2x -g
-CC = clang  
+CC = gcc  
 
 SOURCE_DIR = ./src
 BUILD_DIR = ./build
