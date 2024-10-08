@@ -7,7 +7,7 @@ Json * Json_init(){
 }
 
 void Json_print(Json * json){
-    
+    json_print(stdout, json);
 }
 
 
