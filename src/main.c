@@ -7,5 +7,8 @@ int main(void){
     Json * element = Parser_Parse(parser);
     Json_print(element);
     // test();
+
+    Parser_free(parser);
+    return 0;
 }
 

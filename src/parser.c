@@ -34,6 +34,12 @@ static inline int is_json_string_literal(char * string){
     return strcmp(string, "true") == 0 || strcmp(string, "false") == 0 || strcmp(string, "null") == 0;
 }
 
+static void skip_whitespace_token(Token_iterator * iter){
+    while(is_whitespace(TokIter_PeekNext(iter))){
+        TokIter_GrabNext(iter);
+    }
+}
+
 /**
  * Determine if the character is a json character
  * TODO: implement test for unicode characters
@@ -148,18 +154,28 @@ static int Parser_parse_value(JsonParser * self, json_element_t * element){
     return RESULT_OK;
 }
 
-json_element_t * Parser_Parse(JsonParser * self){
-    int outcome = Parser_parse_value(self, self->json);
-    if(outcome != RESULT_OK){
-        switch(outcome){
-            case INVALID_JSON_CHARACTER:
-                fprintf(stderr, "Invalid json character");
-                break;
-            default:
-                fprintf(stderr, "Unknown error");
-                break;
-        }
+static int Parser_parse_element(JsonParser * self, json_element_t * element){
+    skip_whitespace_token(self->iter);
+    return Parser_parse_value(self, element);
+}
+
+static void error_log(int error){
+    if (error == RESULT_OK)
+        return;
+        
+    switch(error){
+        case INVALID_JSON_CHARACTER:
+            fprintf(stderr, "Invalid json character");
+            break;
+        default:
+            fprintf(stderr, "Unknown error");
+            break;
     }
+}
+
+json_element_t * Parser_Parse(JsonParser * self){
+    int outcome = Parser_parse_element(self, self->json);
+    error_log(outcome);
     return self->json;
 }
 
