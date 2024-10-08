@@ -3,7 +3,9 @@
 #include "parser.h"
 
 int main(void){
-    parse_json("\"hello\"");
+    JsonParser * parser = Parser_New("1");
+    Json * element = Parser_Parse(parser);
+    Json_print(element);
     // test();
 }
 

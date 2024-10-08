@@ -8,6 +8,10 @@
         "*.scss.liquid": "liquid-scss",
         "locale.h": "c",
         "string": "c",
-        "format": "c"
-    }
+        "format": "c",
+        "parser.h": "c"
+    },
+    "C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
+        "clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling"
+    ]
 }
