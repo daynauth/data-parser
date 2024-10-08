@@ -9,7 +9,8 @@
         "locale.h": "c",
         "string": "c",
         "format": "c",
-        "parser.h": "c"
+        "parser.h": "c",
+        "json.h": "c"
     },
     "C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
         "clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling"

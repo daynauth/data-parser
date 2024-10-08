@@ -1,11 +1,26 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "json.h"
 #include "json_t.h"
 
 #define RESULT_OK 0
 #define INVALID_JSON_CHARACTER -1
+#define MISSING_LEFT_BRACE -2
+#define MISSING_RIGHT_BRACE -3
+#define MISSING_COLON -4
+#define MISSING_COMMA -5
+#define MISSING_QUOTATION -6
+#define MISSING_LEFT_BRACKET -7
+#define MISSING_RIGHT_BRACKET -8
+
+#define MATCH(ch, pattern, error_code) \
+    do { \
+        if ((ch) != (pattern)) { \
+            return (error_code); \
+        } \
+    } while (0)
+
+#define MATCH_OK(ch) MATCH(ch, RESULT_OK, ch)
 
 typedef struct token_iterator{
     int current;

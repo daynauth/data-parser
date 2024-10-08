@@ -4,14 +4,14 @@
 #include <string.h>
 
 // need for unicode
-#include <wchar.h>
-#include <locale.h>
+// #include <wchar.h>
+// #include <locale.h>
 
 
 #include "parser.h"
 
-static inline int match(int ch, int pattern, const char * message){
-    return ch == pattern? : fprintf(stderr, "%s\n", message);
+static inline int match(int ch, int pattern, const int error_code){
+    return ch == pattern? RESULT_OK : error_code;
 }
 
 static inline int end_of_string(int ch){
@@ -105,9 +105,9 @@ JsonParser * Parser_New(const char * token_string){
     return parser;
 }
 
-static int Parser_parse_value(JsonParser * self, json_element_t * element);
+static int JsonParser_parse_value(JsonParser * self, json_element_t * element);
 
-static int Parser_parse_number(JsonParser * self, json_element_t * element){
+static int JsonParser_parse_number_element(JsonParser * self, json_element_t * element){
     int pos = TokIter_GetIndex(self->iter) - 1;
 
     while(isdigit(TokIter_PeekNext(self->iter))){
@@ -135,16 +135,74 @@ static int Parser_parse_number(JsonParser * self, json_element_t * element){
     return RESULT_OK;
 }
 
-static int Parser_parse_value(JsonParser * self, json_element_t * element){
+static int JsonParser_get_string_length(JsonParser * self, int start_position){
+    while(is_json_char(TokIter_PeekNext(self->iter))){
+        TokIter_GrabNext(self->iter);
+    }
+
+    return TokIter_GetIndex(self->iter) - start_position;
+}
+
+static struct json_string_t * JsonParser_parse_string(JsonParser * self){
+    int pos = TokIter_GetIndex(self->iter);
+    int length = JsonParser_get_string_length(self, pos);
+    struct json_string_t * string = json_string_create(length);
+
+    strncpy(string->string, self->iter->token_string + pos, string->length);
+    string->string[string->length] = '\0';
+
+    return string;
+}
+
+static int JsonParser_parse_string_element(JsonParser * self, json_element_t * element){
+    struct json_string_t * string = JsonParser_parse_string(self);
+    
+
+    element->type = JSON_TYPE_STRING;
+    element->value.string = string;
+
+    return RESULT_OK;
+
+}
+
+static int JsonParser_parse_object(JsonParser * self, json_element_t * element){
+    //get the key
+    MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
+    struct json_string_t * key = JsonParser_parse_string(self);
+    MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
+    
+    //check for seperator
+    MATCH(TokIter_GrabNext(self->iter), COLON, MISSING_COLON);
+
+    //get the value
+    skip_whitespace_token(self->iter);
+    json_element_t * object_element = Json_init();
+    JsonParser_parse_value(self, object_element);
+
+    struct json_object_t * object = json_object_create();
+    json_object_t_add_element(object, key, object_element);
+
+    element->type = JSON_TYPE_OBJECT;
+    element->value.object = object;
+
+    return RESULT_OK;
+}
+
+
+static int JsonParser_parse_value(JsonParser * self, json_element_t * element){
     int ch = TokIter_GrabNext(self->iter);
     switch(ch){
         case '\"':
+            JsonParser_parse_string_element(self, element);
+            MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
             break;
         case '{':
+            JsonParser_parse_object(self, element);
+            MATCH(TokIter_GrabNext(self->iter), RIGHT_PAREN, MISSING_RIGHT_BRACKET);
             break;
         default:
             if(isdigit(ch)){
-                Parser_parse_number(self, element);
+                JsonParser_parse_number_element(self, element);
             }
             else {
                 return INVALID_JSON_CHARACTER;
@@ -156,7 +214,7 @@ static int Parser_parse_value(JsonParser * self, json_element_t * element){
 
 static int Parser_parse_element(JsonParser * self, json_element_t * element){
     skip_whitespace_token(self->iter);
-    return Parser_parse_value(self, element);
+    return JsonParser_parse_value(self, element);
 }
 
 static void error_log(int error){
@@ -165,12 +223,34 @@ static void error_log(int error){
         
     switch(error){
         case INVALID_JSON_CHARACTER:
-            fprintf(stderr, "Invalid json character");
+            fprintf(stderr, "Invalid json character\n");
+            break;
+        case MISSING_LEFT_BRACE:
+            fprintf(stderr, "Missing left brace");
+            break;
+        case MISSING_RIGHT_BRACE:
+            fprintf(stderr, "Missing right brace\n");
+            break;
+        case MISSING_COLON:
+            fprintf(stderr, "Missing colon\n");
+            break;
+        case MISSING_COMMA:
+            fprintf(stderr, "Missing comma\n");
+            break;
+        case MISSING_QUOTATION:
+            fprintf(stderr, "Missing quotation\n");
+            break;
+        case MISSING_LEFT_BRACKET:
+            fprintf(stderr, "Missing left bracket\n");
+            break;
+        case MISSING_RIGHT_BRACKET:
+            fprintf(stderr, "Missing right bracket\n");
             break;
         default:
-            fprintf(stderr, "Unknown error");
+            fprintf(stderr, "Unknown error\n");
             break;
     }
+    exit(1);
 }
 
 json_element_t * Parser_Parse(JsonParser * self){
@@ -184,202 +264,30 @@ int Parser_free(JsonParser * self){
         return 0;
 
     TokIter_Free(self->iter);
+    Json_destroy(self->json);
+
     free(self);
     return 1;
 }
-
-
-static Token_iterator * iter;
-
-
-
 /**
  * Parse the json string for acii characters
  * TODO: implement a unicode parser
  */
-static void parse_json_string(json_char_t ** key){
-    int start = TokIter_GetIndex(iter);
-
-    while(is_json_char(TokIter_PeekNext(iter))){
-        TokIter_GrabNext(iter);
-    }
-
-    int length = TokIter_GetIndex(iter) - start;
-    *key = malloc(length + 1);
-    strncpy(*key, iter->token_string + start, length);
-    (*key)[length] = '\0';
-}
-
-static void skip_whitespace(){
-    while(is_whitespace(TokIter_PeekNext(iter))){
-        TokIter_GrabNext(iter);
-    }
-}
-
 
 
 //unicode check
 // setlocale(LC_CTYPE, "");
 // wchar_t temp = 0x03A9;
 // fwprintf(stdout, L"%lc\n", temp);
-static json_element_t parse_json_object(){
-    //get the key
-    json_char_t * key = NULL;
-    match(TokIter_GrabNext(iter), QUOTATION, "Opening quotation not found");
-    parse_json_string(&key);
-    match(TokIter_GrabNext(iter), QUOTATION, "Closing quotation not found");
-    
-    //check for seperator
-    match(TokIter_GrabNext(iter), COLON, "Seperator not found");
-
-    //get the value
-    skip_whitespace();
-    json_element_t object_element = parse_value();
-
-    struct json_object_t * object = json_object_create();
-    json_object_t_add_element(object, key, &object_element);
-
-    json_element_t element = {.type = JSON_TYPE_OBJECT, .value.object = object};
-
-    //check for closing brace
-    match(TokIter_GrabNext(iter), RIGHT_PAREN, "Closing brace not found");
-
-    return element;
-}
-
-json_element_t parse_string(){
-
-    int pos = TokIter_GetIndex(iter);
-
-    while(TokIter_PeekNext(iter) != '\"'){
-        TokIter_GrabNext(iter);
-    }
-
-
-    int length = TokIter_GetIndex(iter) - pos;
-    match(TokIter_GrabNext(iter), QUOTATION, "Closing quotation not found");
-
-    struct json_string_t string = {.length = length};
-    string.string = malloc(length + 1);
-    strncpy(string.string, iter->token_string + pos, length);
-    string.string[length] = '\0';
-
-    json_element_t element = {.type = JSON_TYPE_STRING, .value.string = string};
-
-    return element;
-}
-
-json_element parse_literatl(){
-    int pos = TokIter_GetIndex(iter);
-    while(isalpha(TokIter_PeekNext(iter))){
-        TokIter_GrabNext(iter);
-    }
-
-    int length = TokIter_GetIndex(iter) - pos;
-    char * literal = malloc(length + 1);
-    strncpy(literal, iter->token_string + pos, length);
-    literal[length] = '\0';
-    
-
-    json_element element = {.type = json_type_literal};
-    element.value.string = literal;
-
-    return element;
-}
-
-json_element_t parse_number(){
-    int pos = TokIter_GetIndex(iter) - 1;
-
-    while(isdigit(TokIter_PeekNext(iter))){
-        TokIter_GrabNext(iter);
-    }
-
-    if(TokIter_PeekNext(iter) == '.'){
-        TokIter_GrabNext(iter);
-        while(isdigit(TokIter_PeekNext(iter))){
-            TokIter_GrabNext(iter);
-        }
-    }
-
-    int length = TokIter_GetIndex(iter) - pos;
-    char * number = malloc(length + 1);
-    strncpy(number, iter->token_string + pos, length);
-    number[length] = '\0';
-
-    double num = atof(number);
-    free(number);
-
-    json_element_t element = {.type = JSON_TYPE_NUMBER, .value.number = num};
-
-    return element;
-}
-
-json_element_t parse_value(){
-    int ch = TokIter_GrabNext(iter);
-    json_element_t element;
-
-    switch(ch){
-        case '\"':
-            element = parse_string();
-            break;
-        case '{':
-            element = parse_json_object();
-            break;
-        default:
-            if(isdigit(ch)){
-                element = parse_number();
-            }
-            else {
-                error("Invalid json character");
-            }
-            
-    }
-
-    return element;
-}
-
-json_element_t parse_element(){
-    skip_whitespace();
-    json_element_t element = parse_value();
-    skip_whitespace();
-    return element;
-}
-
-void parse_json(const char* string){
-    printf("%s\n", string); //debugging
-
-    iter = TokIter_New(string);
-    // json_element element = parse_element();
-    json_element_t element = parse_element();
-    // printf("Length: %d\n", element.value.object->length);
-    // json_element_print(&element, stdout);
-    json_print(stdout, &element);
-    printf("\n");
-    TokIter_Free(iter);
-}
 
 
 
-void test(void){
-    json_object jo = {};
-
-    json_object_add(&jo, "age", 23.1);
-    json_object_add(&jo, "name", "bruce wayne");
-    json_object_add(&jo, "tall", 0);
 
 
-    json_object jo2 = {};
-    json_object_add(&jo2, "address", "Gotham City");
-
-    json_object_print(&jo);
-    json_object_print(&jo2);
 
 
-    json_object * jo3[] = {&jo, &jo2};
-    size_t length = sizeof(jo3) / sizeof(jo3[0]);
 
-    json_object jo4 = {};
 
-    json_object_add_array(&jo4, "people", jo3, length);
-    json_object_print(&jo4);
-}
+
+
+

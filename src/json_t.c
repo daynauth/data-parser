@@ -1,15 +1,51 @@
 #include "json_t.h"
 #include <string.h>
 
+struct json_string_t * json_string_create(int length){
+    struct json_string_t * js = malloc(sizeof(struct json_string_t));
+    js->length = length;
+    js->string = malloc(length + 1);
+    return js;
+}
+
+void json_string_destroy(struct json_string_t * js){
+    if(js == NULL)
+        return;
+
+    free(js->string);
+    free(js);
+}
+
 Json * Json_init(){
     Json * json = malloc(sizeof(Json));
     return json;
+}
+
+void Json_destroy(Json * json){
+    if(json == NULL)
+        return;
+
+    switch(json->type){
+        case JSON_TYPE_STRING:
+            json_string_destroy(json->value.string);
+            break;
+        case JSON_TYPE_OBJECT:
+            json_object_destroy(json->value.object);
+            break;
+        default:
+            break;
+    }
+
+    free(json);
 }
 
 void Json_print(Json * json){
     json_print(stdout, json);
 }
 
+static void json_string_t_print(FILE * fp, struct json_string_t * js){
+    fprintf(fp, "\"%s\"", js->string);
+}
 
 
 void json_object_t_print(FILE * fp, struct json_object_t *jo){
@@ -18,7 +54,8 @@ void json_object_t_print(FILE * fp, struct json_object_t *jo){
 
     for(int i = 0; i < jo->length; i++){
         struct json_object_kv_t kv = jo->elements[i];
-        fprintf(stdout, "\"%s\": ", kv.key);
+        json_string_t_print(fp, kv.key);
+        fprintf(fp, ": ");
         json_print(stdout, kv.element);
         if(i < jo->length - 1){
             fprintf(stdout, ", ");
@@ -32,7 +69,8 @@ void json_print(FILE * fp, json_element_t * element){
 
     switch(element->type){
         case JSON_TYPE_STRING:
-            fprintf(fp, "\"%s\"", element->value.string.string);
+            // fprintf(fp, "\"%s\"", element->value.string.string);
+            json_string_t_print(fp, element->value.string);
             break;
         case JSON_TYPE_NUMBER:
             fprintf(fp, "%f", element->value.number);
@@ -80,10 +118,11 @@ int json_object_destroy(struct json_object_t * object){
     return 1;
 }
 
-void json_object_t_add_element(struct json_object_t * jo, json_char_t * key, struct json_element_t * element){
+void json_object_t_add_element(struct json_object_t * jo, struct json_string_t * key, struct json_element_t * element){
     json_object_resize(jo);
 
-    struct json_object_kv_t kv = {.key = key};
+    struct json_object_kv_t kv = {};
+    kv.key = key;
     kv.element = malloc(sizeof(struct json_element_t));
     memcpy(kv.element, element, sizeof(struct json_element_t));
 
