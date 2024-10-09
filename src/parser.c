@@ -10,6 +10,24 @@
 
 #include "parser.h"
 
+static inline void copy_string(char * dest, const char * src, int length){
+    strncpy(dest, src, length);
+    dest[length] = '\0';
+}
+
+
+
+/**
+ * @brief Compare two strings and return 1 if they are equal, 0 otherwise
+ * 
+ * @param string1 
+ * @param string2 
+ * @return int 
+ */
+static inline int string_is_equal(const char * string1, const char * string2){
+    return strcmp(string1, string2) == 0;
+}
+
 static inline int match(int ch, int pattern, const int error_code){
     return ch == pattern? RESULT_OK : error_code;
 }
@@ -31,7 +49,7 @@ static inline int is_json_integer(int ch){
 }
 
 static inline int is_json_string_literal(char * string){
-    return strcmp(string, "true") == 0 || strcmp(string, "false") == 0 || strcmp(string, "null") == 0;
+    return string_is_equal(string, "true") || string_is_equal(string, "false") || string_is_equal(string, "null");
 }
 
 static void skip_whitespace_token(Token_iterator * iter){
@@ -64,6 +82,8 @@ Token_iterator * TokIter_New(const char * token_string){
     iter->token_string = token_string;
     iter->current = 0;
     iter->length = get_length_of_string(token_string);
+    iter->col = 1;
+    iter->line = 1;
 
     return iter;
 }
@@ -85,7 +105,15 @@ int TokIter_HasNext(Token_iterator * iter){
 }
 
 int TokIter_GrabNext(Token_iterator * iter){
-    return iter->token_string[iter->current++];
+    json_char_t ch = iter->token_string[iter->current++];
+
+    if(ch == '\n'){
+        iter->line++;
+        iter->col = 0;
+    }
+    
+    iter->col++;
+    return ch;
 }
 
 void TokIter_Free(Token_iterator * iter){
@@ -123,8 +151,7 @@ static int JsonParser_parse_number_element(JsonParser * self, json_element_t * e
 
     int length = TokIter_GetIndex(self->iter) - pos;
     char * number = malloc(length + 1);
-    strncpy(number, self->iter->token_string + pos, length);
-    number[length] = '\0';
+    copy_string(number, self->iter->token_string + pos, length);
 
     double num = atof(number);
     free(number);
@@ -156,21 +183,21 @@ static struct json_string_t * JsonParser_parse_string(JsonParser * self){
 
 static int JsonParser_parse_string_element(JsonParser * self, json_element_t * element){
     struct json_string_t * string = JsonParser_parse_string(self);
-    
-
     element->type = JSON_TYPE_STRING;
     element->value.string = string;
 
     return RESULT_OK;
-
 }
 
 static int JsonParser_parse_object(JsonParser * self, json_element_t * element){
+    struct json_object_t * object = json_object_create();
+
     //get the key
     MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
     struct json_string_t * key = JsonParser_parse_string(self);
     MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
-    
+    skip_whitespace_token(self->iter);
+
     //check for seperator
     MATCH(TokIter_GrabNext(self->iter), COLON, MISSING_COLON);
 
@@ -179,7 +206,7 @@ static int JsonParser_parse_object(JsonParser * self, json_element_t * element){
     json_element_t * object_element = Json_init();
     JsonParser_parse_value(self, object_element);
 
-    struct json_object_t * object = json_object_create();
+    
     json_object_t_add_element(object, key, object_element);
 
     element->type = JSON_TYPE_OBJECT;
@@ -197,7 +224,10 @@ static int JsonParser_parse_value(JsonParser * self, json_element_t * element){
             MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
             break;
         case '{':
-            JsonParser_parse_object(self, element);
+            skip_whitespace_token(self->iter);
+            MATCH_OK(JsonParser_parse_object(self, element));
+            skip_whitespace_token(self->iter);
+
             MATCH(TokIter_GrabNext(self->iter), RIGHT_PAREN, MISSING_RIGHT_BRACKET);
             break;
         default:
@@ -217,10 +247,26 @@ static int Parser_parse_element(JsonParser * self, json_element_t * element){
     return JsonParser_parse_value(self, element);
 }
 
-static void error_log(int error){
+/**
+ * @brief Print the error message to the console
+ * 
+ * @param iter 
+ */
+// TODO: only output the current line, also add color support
+static void print_error_debug(Token_iterator * iter){
+    fprintf(stderr, "Error: Parse error on  at line %d:\n", iter->line);
+    fprintf(stderr, "%s\n", iter->token_string);
+    for(int i = 0; i < iter->col - 1; i++){
+        fprintf(stderr, "-");
+    }
+    fprintf(stderr, "^\n");
+}
+
+static void parser_error_log(Token_iterator * iter, int error){
     if (error == RESULT_OK)
         return;
         
+    print_error_debug(iter);
     switch(error){
         case INVALID_JSON_CHARACTER:
             fprintf(stderr, "Invalid json character\n");
@@ -250,12 +296,13 @@ static void error_log(int error){
             fprintf(stderr, "Unknown error\n");
             break;
     }
+    
     exit(1);
 }
 
 json_element_t * Parser_Parse(JsonParser * self){
     int outcome = Parser_parse_element(self, self->json);
-    error_log(outcome);
+    parser_error_log(self->iter, outcome);
     return self->json;
 }
 

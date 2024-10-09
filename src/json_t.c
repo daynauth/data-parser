@@ -69,17 +69,15 @@ void json_print(FILE * fp, json_element_t * element){
 
     switch(element->type){
         case JSON_TYPE_STRING:
-            // fprintf(fp, "\"%s\"", element->value.string.string);
             json_string_t_print(fp, element->value.string);
             break;
         case JSON_TYPE_NUMBER:
             fprintf(fp, "%f", element->value.number);
             break;
         case JSON_TYPE_OBJECT:
-            fprintf(fp, "{ ");
-            // fprintf(fp, "Length: %d\n", element->value.object->length);
+            fprintf(fp, "{");
             json_object_t_print(fp, element->value.object);
-            fprintf(fp, " }");
+            fprintf(fp, "}");
             break;
         default:
             fprintf(stderr, "Unknown type");

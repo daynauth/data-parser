@@ -20,11 +20,19 @@
         } \
     } while (0)
 
-#define MATCH_OK(ch) MATCH(ch, RESULT_OK, ch)
+#define MATCH_OK(ch) \
+({ \
+    int _err = (ch); \
+    MATCH(_err, RESULT_OK, _err); \
+})
+
+
 
 typedef struct token_iterator{
     int current;
     int length;
+    int col;
+    int line;
     const char * token_string;
 } Token_iterator;
 
@@ -46,11 +54,5 @@ void TokIter_Free(Token_iterator * iter);
 JsonParser * Parser_New(const char * token_string);
 json_element_t * Parser_Parse(JsonParser * self);
 int Parser_free(JsonParser * self);
-
-void test(void);
-void parse_json(const char* string);
-// json_element parse_value();
-json_element_t parse_element();
-json_element_t parse_value();
 
 #endif
