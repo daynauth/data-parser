@@ -14,16 +14,16 @@
 #define MISSING_RIGHT_BRACKET -8
 
 #define MATCH(ch, pattern, error_code) \
-    do { \
-        if ((ch) != (pattern)) { \
-            return (error_code); \
-        } \
+    do {                               \
+        if ((ch) != (pattern)) {       \
+            return (error_code);       \
+        }                              \
     } while (0)
 
-#define MATCH_OK(ch) \
-({ \
-    int _err = (ch); \
-    MATCH(_err, RESULT_OK, _err); \
+#define MATCH_OK(ch)                   \
+({                                     \
+    int _err = (ch);                   \
+    MATCH(_err, RESULT_OK, _err);      \
 })
 
 
