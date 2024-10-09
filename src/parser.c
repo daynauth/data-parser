@@ -200,12 +200,12 @@ static int JsonParser_parse_object(JsonParser * self, json_element_t * element){
 
     //check for seperator
     MATCH(TokIter_GrabNext(self->iter), COLON, MISSING_COLON);
-
+    printf("This should run\n");
     //get the value
     skip_whitespace_token(self->iter);
     json_element_t * object_element = Json_init();
     JsonParser_parse_value(self, object_element);
-
+    printf("%s\n", object_element->value.string->string);
     
     json_object_t_add_element(object, key, object_element);
 
@@ -244,7 +244,10 @@ static int JsonParser_parse_value(JsonParser * self, json_element_t * element){
 
 static int Parser_parse_element(JsonParser * self, json_element_t * element){
     skip_whitespace_token(self->iter);
-    return JsonParser_parse_value(self, element);
+    MATCH_OK(JsonParser_parse_value(self, element));
+    skip_whitespace_token(self->iter);
+
+    return INVALID_JSON_CHARACTER;
 }
 
 /**
@@ -269,7 +272,7 @@ static void parser_error_log(Token_iterator * iter, int error){
     print_error_debug(iter);
     switch(error){
         case INVALID_JSON_CHARACTER:
-            fprintf(stderr, "Invalid json character\n");
+            fprintf(stderr, "Expecting \'EOF\' character \n");
             break;
         case MISSING_LEFT_BRACE:
             fprintf(stderr, "Missing left brace");
