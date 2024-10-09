@@ -54,7 +54,10 @@ static inline int is_json_string_literal(char * string){
 
 static void skip_whitespace_token(Token_iterator * iter){
     while(is_whitespace(TokIter_PeekNext(iter))){
-        TokIter_GrabNext(iter);
+        int ch = TokIter_GrabNext(iter);
+        if(ch == '\0'){
+            return;
+        }
     }
 }
 
@@ -200,12 +203,12 @@ static int JsonParser_parse_object(JsonParser * self, json_element_t * element){
 
     //check for seperator
     MATCH(TokIter_GrabNext(self->iter), COLON, MISSING_COLON);
-    printf("This should run\n");
+
     //get the value
     skip_whitespace_token(self->iter);
     json_element_t * object_element = Json_init();
     JsonParser_parse_value(self, object_element);
-    printf("%s\n", object_element->value.string->string);
+
     
     json_object_t_add_element(object, key, object_element);
 
@@ -227,7 +230,6 @@ static int JsonParser_parse_value(JsonParser * self, json_element_t * element){
             skip_whitespace_token(self->iter);
             MATCH_OK(JsonParser_parse_object(self, element));
             skip_whitespace_token(self->iter);
-
             MATCH(TokIter_GrabNext(self->iter), RIGHT_PAREN, MISSING_RIGHT_BRACKET);
             break;
         default:
@@ -247,6 +249,8 @@ static int Parser_parse_element(JsonParser * self, json_element_t * element){
     MATCH_OK(JsonParser_parse_value(self, element));
     skip_whitespace_token(self->iter);
 
+    MATCH(TokIter_GrabNext(self->iter), EOF, INVALID_JSON_CHARACTER);
+
     return INVALID_JSON_CHARACTER;
 }
 
@@ -257,7 +261,7 @@ static int Parser_parse_element(JsonParser * self, json_element_t * element){
  */
 // TODO: only output the current line, also add color support
 static void print_error_debug(Token_iterator * iter){
-    fprintf(stderr, "Error: Parse error on  at line %d:\n", iter->line);
+    fprintf(stderr, "Error: Parse error at line %d:\n", iter->line);
     fprintf(stderr, "%s\n", iter->token_string);
     for(int i = 0; i < iter->col - 1; i++){
         fprintf(stderr, "-");
@@ -272,7 +276,7 @@ static void parser_error_log(Token_iterator * iter, int error){
     print_error_debug(iter);
     switch(error){
         case INVALID_JSON_CHARACTER:
-            fprintf(stderr, "Expecting \'EOF\' character \n");
+            fprintf(stderr, "Expecting \'EOF\' character,  \n");
             break;
         case MISSING_LEFT_BRACE:
             fprintf(stderr, "Missing left brace");
@@ -293,12 +297,18 @@ static void parser_error_log(Token_iterator * iter, int error){
             fprintf(stderr, "Missing left bracket\n");
             break;
         case MISSING_RIGHT_BRACKET:
-            fprintf(stderr, "Missing right bracket\n");
+            fprintf(stderr, "Missing \'%c\' ", RIGHT_PAREN);
             break;
         default:
             fprintf(stderr, "Unknown error\n");
             break;
     }
+
+    if(TokIter_HasNext(iter))
+        fprintf(stderr, "got \'%c\' instead.\n", TokIter_PeekNext(iter));
+    else
+        fprintf(stderr, "got \'EOF\' instead.\n");
+
     
     exit(1);
 }
