@@ -54,10 +54,7 @@ static inline int is_json_string_literal(char * string){
 
 static void skip_whitespace_token(Token_iterator * iter){
     while(is_whitespace(TokIter_PeekNext(iter))){
-        int ch = TokIter_GrabNext(iter);
-        if(ch == '\0'){
-            return;
-        }
+        TokIter_GrabNext(iter);
     }
 }
 
@@ -249,9 +246,11 @@ static int Parser_parse_element(JsonParser * self, json_element_t * element){
     MATCH_OK(JsonParser_parse_value(self, element));
     skip_whitespace_token(self->iter);
 
-    MATCH(TokIter_GrabNext(self->iter), EOF, INVALID_JSON_CHARACTER);
+    if(TokIter_HasNext(self->iter)){
+        return INVALID_JSON_CHARACTER;
+    }
 
-    return INVALID_JSON_CHARACTER;
+    return RESULT_OK;
 }
 
 /**
@@ -276,7 +275,7 @@ static void parser_error_log(Token_iterator * iter, int error){
     print_error_debug(iter);
     switch(error){
         case INVALID_JSON_CHARACTER:
-            fprintf(stderr, "Expecting \'EOF\' character,  \n");
+            fprintf(stderr, "Expecting \'EOF\' character, ");
             break;
         case MISSING_LEFT_BRACE:
             fprintf(stderr, "Missing left brace");
