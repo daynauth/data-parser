@@ -52,17 +52,21 @@ static inline int is_json_string_literal(char * string){
     return string_is_equal(string, "true") || string_is_equal(string, "false") || string_is_equal(string, "null");
 }
 
-static void skip_whitespace_token(Token_iterator * iter){
-    while(is_whitespace(TokIter_PeekNext(iter))){
+static void consume_token_while_true(Token_iterator * iter, int (*callback)(int)){
+    while(callback(TokIter_PeekNext(iter))){
         TokIter_GrabNext(iter);
     }
+}
+
+static void skip_whitespace_token(Token_iterator * iter){
+    consume_token_while_true(iter, is_whitespace);
 }
 
 /**
  * Determine if the character is a json character
  * TODO: implement test for unicode characters
  */
-static inline int is_json_char(const char ch){
+static inline int is_json_char(const int ch){
     return isalpha(ch);
 }
 
@@ -116,6 +120,9 @@ int TokIter_GrabNext(Token_iterator * iter){
     return ch;
 }
 
+
+
+
 void TokIter_Free(Token_iterator * iter){
     if(iter != NULL)
         free(iter);
@@ -138,19 +145,16 @@ static int JsonParser_parse_value(JsonParser * self, json_element_t * element);
 static int JsonParser_parse_number_element(JsonParser * self, json_element_t * element){
     int pos = TokIter_GetIndex(self->iter) - 1;
 
-    while(isdigit(TokIter_PeekNext(self->iter))){
-        TokIter_GrabNext(self->iter);
-    }
+    consume_token_while_true(self->iter, isdigit); //testing these out, may throw them away later
 
     if(TokIter_PeekNext(self->iter) == '.'){
         TokIter_GrabNext(self->iter);
-        while(isdigit(TokIter_PeekNext(self->iter))){
-            TokIter_GrabNext(self->iter);
-        }
+        consume_token_while_true(self->iter, isdigit);
     }
 
     int length = TokIter_GetIndex(self->iter) - pos;
     char * number = malloc(length + 1);
+
     copy_string(number, self->iter->token_string + pos, length);
 
     double num = atof(number);
@@ -163,10 +167,7 @@ static int JsonParser_parse_number_element(JsonParser * self, json_element_t * e
 }
 
 static inline int JsonParser_get_string_length(JsonParser * self, int start_position){
-    while(is_json_char(TokIter_PeekNext(self->iter))){
-        TokIter_GrabNext(self->iter);
-    }
-
+    consume_token_while_true(self->iter, is_json_char);
     return TokIter_GetIndex(self->iter) - start_position;
 }
 
@@ -232,6 +233,12 @@ static int JsonParser_parse_member(JsonParser * self, struct json_object_t * obj
 static int JsonParser_parse_members(JsonParser * self, struct json_object_t * object){
     MATCH_OK(JsonParser_parse_member(self, object));
     skip_whitespace_token(self->iter);
+
+    while(TokIter_PeekNext(self->iter) == COMMA){
+        TokIter_GrabNext(self->iter);
+        skip_whitespace_token(self->iter);
+        MATCH_OK(JsonParser_parse_member(self, object));
+    }
 
     return RESULT_OK;
 }

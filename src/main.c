@@ -3,7 +3,7 @@
 #include "parser.h"
 
 int main(void){
-    JsonParser * parser = Parser_New("{\"name\" : \"John}");
+    JsonParser * parser = Parser_New(  "    {\"name\" : \"John\"    , \"age\" : 100 } ");
     Json * element = Parser_Parse(parser);
     Json_print(element);
     printf("\n");
