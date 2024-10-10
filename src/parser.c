@@ -162,7 +162,7 @@ static int JsonParser_parse_number_element(JsonParser * self, json_element_t * e
     return RESULT_OK;
 }
 
-static int JsonParser_get_string_length(JsonParser * self, int start_position){
+static inline int JsonParser_get_string_length(JsonParser * self, int start_position){
     while(is_json_char(TokIter_PeekNext(self->iter))){
         TokIter_GrabNext(self->iter);
     }
@@ -183,31 +183,76 @@ static struct json_string_t * JsonParser_parse_string(JsonParser * self){
 
 static int JsonParser_parse_string_element(JsonParser * self, json_element_t * element){
     struct json_string_t * string = JsonParser_parse_string(self);
+
     element->type = JSON_TYPE_STRING;
     element->value.string = string;
 
     return RESULT_OK;
 }
 
+static int JsonParser_test(){
+
+    return 0;
+}
+
+/**
+ * @brief Parse single member of the json object
+ * ws string ws ':' element
+ * @param self 
+ * @param object 
+ * @return int 
+ */
+static int JsonParser_parse_member(JsonParser * self, struct json_object_t * object){
+        MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
+        struct json_string_t * key = JsonParser_parse_string(self);
+        MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
+        skip_whitespace_token(self->iter);
+
+        //check for seperator
+        MATCH(TokIter_GrabNext(self->iter), COLON, MISSING_COLON);
+
+        //get the value
+        skip_whitespace_token(self->iter);
+        json_element_t * object_element = Json_init();
+        MATCH_OK(JsonParser_parse_value(self, object_element));
+
+        json_object_t_add_element(object, key, object_element);
+
+        return RESULT_OK;
+}
+
+/**
+ * @brief Parse the list of members in the json object
+ * member | member ',' members
+ * 
+ * @param self 
+ * @param object 
+ * @return int 
+ */
+static int JsonParser_parse_members(JsonParser * self, struct json_object_t * object){
+    MATCH_OK(JsonParser_parse_member(self, object));
+    skip_whitespace_token(self->iter);
+
+    return RESULT_OK;
+}
+
+/**
+ * @brief Parse the json object
+ * '{' ws '}' | '{' members '}'
+ * 
+ * @param self 
+ * @param element 
+ * @return int 
+ */
+
 static int JsonParser_parse_object(JsonParser * self, json_element_t * element){
     struct json_object_t * object = json_object_create();
 
-    //get the key
-    MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
-    struct json_string_t * key = JsonParser_parse_string(self);
-    MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
     skip_whitespace_token(self->iter);
-
-    //check for seperator
-    MATCH(TokIter_GrabNext(self->iter), COLON, MISSING_COLON);
-
-    //get the value
+    if(TokIter_PeekNext(self->iter) == QUOTATION){
+        MATCH_OK(JsonParser_parse_members(self, object));
+    }
     skip_whitespace_token(self->iter);
-    json_element_t * object_element = Json_init();
-    JsonParser_parse_value(self, object_element);
-
-    
-    json_object_t_add_element(object, key, object_element);
 
     element->type = JSON_TYPE_OBJECT;
     element->value.object = object;
@@ -215,22 +260,29 @@ static int JsonParser_parse_object(JsonParser * self, json_element_t * element){
     return RESULT_OK;
 }
 
-
+/**
+ * @brief Parse all the json values
+ *  object | array | string | number | 'true' | 'false' | 'null'
+ * 
+ * @param self 
+ * @param element 
+ * @return int 
+ */
 static int JsonParser_parse_value(JsonParser * self, json_element_t * element){
     int ch = TokIter_GrabNext(self->iter);
     switch(ch){
-        case '\"':
-            JsonParser_parse_string_element(self, element);
+        case '\"': // string
+            MATCH_OK(JsonParser_parse_string_element(self, element));
             MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
             break;
-        case '{':
+        case '{': // object
             skip_whitespace_token(self->iter);
             MATCH_OK(JsonParser_parse_object(self, element));
             skip_whitespace_token(self->iter);
             MATCH(TokIter_GrabNext(self->iter), RIGHT_PAREN, MISSING_RIGHT_BRACKET);
             break;
         default:
-            if(isdigit(ch)){
+            if(isdigit(ch)){ // number
                 JsonParser_parse_number_element(self, element);
             }
             else {
@@ -262,7 +314,7 @@ static int Parser_parse_element(JsonParser * self, json_element_t * element){
 static void print_error_debug(Token_iterator * iter){
     fprintf(stderr, "Error: Parse error at line %d:\n", iter->line);
     fprintf(stderr, "%s\n", iter->token_string);
-    for(int i = 0; i < iter->col - 1; i++){
+    for(int i = 0; i < iter->col - 2; i++){
         fprintf(stderr, "-");
     }
     fprintf(stderr, "^\n");
@@ -290,7 +342,7 @@ static void parser_error_log(Token_iterator * iter, int error){
             fprintf(stderr, "Missing comma\n");
             break;
         case MISSING_QUOTATION:
-            fprintf(stderr, "Missing quotation\n");
+            fprintf(stderr, "Expected \'\"\', ");
             break;
         case MISSING_LEFT_BRACKET:
             fprintf(stderr, "Missing left bracket\n");
@@ -303,8 +355,8 @@ static void parser_error_log(Token_iterator * iter, int error){
             break;
     }
 
-    if(TokIter_HasNext(iter))
-        fprintf(stderr, "got \'%c\' instead.\n", TokIter_PeekNext(iter));
+    if(TokIter_PeekNext(iter) != EOF)
+        fprintf(stderr, "got \'%c\' instead.\n", TokIter_Previous(iter));
     else
         fprintf(stderr, "got \'EOF\' instead.\n");
 

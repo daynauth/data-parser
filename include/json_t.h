@@ -10,7 +10,7 @@
 #define RIGHT_BRACKET ']'
 #define COLON ':'
 #define COMMA ','
-#define QUOTATION '"'
+#define QUOTATION '\"'
 #define WS1 ' '
 #define WS2 '\t'
 #define WS3 '\n'
