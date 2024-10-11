@@ -44,6 +44,9 @@ static inline int is_integer(int ch){
     return ch >= '0' && ch <= '9';
 }
 
+/**
+ * Check if character is 0 ... 9 or -
+ */
 static inline int is_json_integer(int ch){
     return is_integer(ch) || ch == '-';
 }
@@ -145,7 +148,7 @@ static int JsonParser_parse_value(JsonParser * self, json_element_t * element);
 static int JsonParser_parse_number_element(JsonParser * self, json_element_t * element){
     int pos = TokIter_GetIndex(self->iter) - 1;
 
-    consume_token_while_true(self->iter, isdigit); //testing these out, may throw them away later
+    consume_token_while_true(self->iter, is_json_integer); //testing these out, may throw them away later
 
     if(TokIter_PeekNext(self->iter) == '.'){
         TokIter_GrabNext(self->iter);
@@ -191,10 +194,7 @@ static int JsonParser_parse_string_element(JsonParser * self, json_element_t * e
     return RESULT_OK;
 }
 
-static int JsonParser_test(){
 
-    return 0;
-}
 
 /**
  * @brief Parse single member of the json object
@@ -289,7 +289,7 @@ static int JsonParser_parse_value(JsonParser * self, json_element_t * element){
             MATCH(TokIter_GrabNext(self->iter), RIGHT_PAREN, MISSING_RIGHT_BRACKET);
             break;
         default:
-            if(isdigit(ch)){ // number
+            if(is_json_integer(ch)){ // number
                 JsonParser_parse_number_element(self, element);
             }
             else {

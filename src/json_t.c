@@ -1,6 +1,20 @@
 #include "json_t.h"
 #include <string.h>
 
+static inline void * safe_malloc(size_t size, const char * file, const int line){
+    void * ar = malloc(size);
+    if(ar == NULL){
+        fprintf(stderr, "Memory could not be allocated in %s on line %d\n", file, line);
+    }
+
+    return ar;
+}
+
+#define malloc_(size) safe_malloc((size), __FILE__, __LINE__)
+#define INIT_SIZE 10
+#define RESIZE_FACTOR 2
+
+
 struct json_string_t * json_string_create(int length){
     struct json_string_t * js = malloc(sizeof(struct json_string_t));
     js->length = length;
@@ -31,6 +45,9 @@ void Json_destroy(Json * json){
             break;
         case JSON_TYPE_OBJECT:
             json_object_destroy(json->value.object);
+            break;
+        case JSON_TYPE_ARRAY:
+            json_array_destroy(json->value.array);
             break;
         default:
             break;
@@ -94,7 +111,7 @@ static void json_object_resize(struct json_object_t * object){
     object->elements = realloc(object->elements, sizeof(struct json_object_kv_t) * object->capacity);
 }
 
-struct json_object_t * json_object_create(void){
+struct json_object_t * json_object_create(){
     struct json_object_t * object = malloc(sizeof(struct json_object_t));
     object->length = 0;
     object->capacity = 10;
@@ -126,4 +143,46 @@ void json_object_t_add_element(struct json_object_t * jo, struct json_string_t *
 
     jo->elements[jo->length] = kv;
     jo->length++;
+}
+
+json_array_t * json_array_init(){
+    json_array_t * array = (json_array_t *)malloc_(sizeof(json_array_t));
+    array->capacity = INIT_SIZE;
+    array->length = 0;
+    array->elements = (json_element_t **)malloc_(sizeof(json_element_t *));
+    return array;
+}
+
+static void json_array_reallocate(json_array_t * array){
+    if(array->length < array->capacity)
+        return;
+
+    array->capacity *= RESIZE_FACTOR;
+    array->elements = realloc(array->elements, sizeof(json_element_t * ) * array->capacity);
+}
+
+void json_array_add_element(json_array_t * array, json_element_t * element){
+    json_array_reallocate(array);
+    array->elements[array->length++] = element;
+}
+
+void json_array_destroy(json_array_t * array){
+    if(!array)
+        return;
+
+    for(int i = 0; i < array->length; i++){
+        Json_destroy(array->elements[i]);
+    }
+
+    free(array);
+}
+
+void json_array_print(FILE * fp, json_array_t * array){
+    for(int i = 0; i < array->capacity; i++){
+        Json_print(array->elements[i]);
+
+        if(i < array->capacity - 1){
+            fprintf(fp, ", ");
+        }
+    }
 }
