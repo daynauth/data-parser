@@ -39,6 +39,7 @@ void Json_destroy(Json * json){
     if(json == NULL)
         return;
 
+
     switch(json->type){
         case JSON_TYPE_STRING:
             json_string_destroy(json->value.string);
@@ -66,7 +67,7 @@ static void json_string_t_print(FILE * fp, struct json_string_t * js){
 
 
 void json_object_t_print(FILE * fp, struct json_object_t *jo){
-    if(jo == NULL)
+    if(jo == NULL )
         return;
 
     for(int i = 0; i < jo->length; i++){
@@ -81,7 +82,7 @@ void json_object_t_print(FILE * fp, struct json_object_t *jo){
 }
 
 void json_print(FILE * fp, json_element_t * element){
-    if(element == NULL)
+    if(element == NULL || element->type == 0)
         return;
 
     switch(element->type){
@@ -95,6 +96,11 @@ void json_print(FILE * fp, json_element_t * element){
             fprintf(fp, "{");
             json_object_t_print(fp, element->value.object);
             fprintf(fp, "}");
+            break;
+        case JSON_TYPE_ARRAY:
+            fprintf(fp, "[");
+            json_array_print(fp, element->value.array);
+            fprintf(fp, "]");
             break;
         default:
             fprintf(stderr, "Unknown type");
@@ -178,10 +184,10 @@ void json_array_destroy(json_array_t * array){
 }
 
 void json_array_print(FILE * fp, json_array_t * array){
-    for(int i = 0; i < array->capacity; i++){
+    for(int i = 0; i < array->length; i++){
         Json_print(array->elements[i]);
 
-        if(i < array->capacity - 1){
+        if(i < array->length - 1){
             fprintf(fp, ", ");
         }
     }

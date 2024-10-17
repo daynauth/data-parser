@@ -245,7 +245,7 @@ static int JsonParser_parse_members(JsonParser * self, struct json_object_t * ob
 
 /**
  * @brief Parse the json object
- * '{' ws '}' | '{' members '}'
+ * object :=> '{' ws '}' | '{' members '}'
  * 
  * @param self 
  * @param element 
@@ -268,6 +268,54 @@ static int JsonParser_parse_object(JsonParser * self, json_element_t * element){
 }
 
 /**
+ * @brief Parse the json array
+ * object :=> '[' ws ']' | '[' elements ']'
+ * 
+ * @param self 
+ * @param element 
+ * @return int 
+ */
+static int JsonParser_parse_array(JsonParser * self, json_element_t * element){
+    json_array_t * array = json_array_init();
+    element->type = JSON_TYPE_ARRAY;
+    element->value.array = array;
+
+    // do{
+    //     skip_whitespace_token(self->iter);
+    //     if(TokIter_PeekNext(self->iter) == RIGHT_BRACKET)
+    //         break;
+
+    //     json_element_t * array_element = Json_init();
+    //     MATCH_OK(JsonParser_parse_value(self, array_element));
+    //     json_array_add_element(array, array_element);
+
+    //     skip_whitespace_token(self->iter);
+    // }while(TokIter_PeekNext(self->iter) == COMMA);
+
+
+    while(1){
+        skip_whitespace_token(self->iter);
+
+        if(TokIter_PeekNext(self->iter) == RIGHT_BRACKET)
+            break;
+
+        json_element_t * array_element = Json_init();
+        MATCH_OK(JsonParser_parse_value(self, array_element));
+        json_array_add_element(array, array_element);
+
+        skip_whitespace_token(self->iter);
+
+        if(TokIter_PeekNext(self->iter) == COMMA){
+            TokIter_GrabNext(self->iter);
+        }
+    }
+
+
+    return RESULT_OK;
+}
+
+
+/**
  * @brief Parse all the json values
  *  object | array | string | number | 'true' | 'false' | 'null'
  * 
@@ -278,15 +326,21 @@ static int JsonParser_parse_object(JsonParser * self, json_element_t * element){
 static int JsonParser_parse_value(JsonParser * self, json_element_t * element){
     int ch = TokIter_GrabNext(self->iter);
     switch(ch){
-        case '\"': // string
+        case QUOTATION: // string
             MATCH_OK(JsonParser_parse_string_element(self, element));
             MATCH(TokIter_GrabNext(self->iter), QUOTATION, MISSING_QUOTATION);
             break;
-        case '{': // object
+        case LEFT_PAREN: // object
             skip_whitespace_token(self->iter);
             MATCH_OK(JsonParser_parse_object(self, element));
             skip_whitespace_token(self->iter);
             MATCH(TokIter_GrabNext(self->iter), RIGHT_PAREN, MISSING_RIGHT_BRACKET);
+            break;
+        case LEFT_BRACKET: // array
+            skip_whitespace_token(self->iter);
+            MATCH_OK(JsonParser_parse_array(self, element));
+            skip_whitespace_token(self->iter);
+            MATCH(TokIter_GrabNext(self->iter), RIGHT_BRACKET, MISSING_RIGHT_BRACKET);
             break;
         default:
             if(is_json_integer(ch)){ // number

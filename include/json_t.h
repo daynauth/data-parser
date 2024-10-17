@@ -18,12 +18,12 @@
 
 
 enum json_type_t {
-    JSON_TYPE_NUMBER,
-    JSON_TYPE_STRING,
-    JSON_TYPE_BOOL,
-    JSON_TYPE_OBJECT,
-    JSON_TYPE_ARRAY,
-    JSON_TYPE_LITERAL
+    JSON_TYPE_NUMBER = 1,
+    JSON_TYPE_STRING = 2,
+    JSON_TYPE_BOOL = 3,
+    JSON_TYPE_OBJECT = 4,
+    JSON_TYPE_ARRAY = 5,
+    JSON_TYPE_LITERAL = 6
 };
 
 typedef int json_char_t;
