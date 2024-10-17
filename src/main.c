@@ -47,7 +47,7 @@ int read_file(const char * filename, char ** buffer){
 
 int main(void){
     char * jsonstr;
-    read_file("./tests/ex3.json", &jsonstr);
+    read_file("./test_parsing/y_number_0e+1.json", &jsonstr);
 
     if(jsonstr == NULL){
         fprintf(stderr, "Could not read file\n");

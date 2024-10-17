@@ -102,6 +102,9 @@ void json_print(FILE * fp, json_element_t * element){
             json_array_print(fp, element->value.array);
             fprintf(fp, "]");
             break;
+        case JSON_TYPE_LITERAL:
+            fprintf(fp, "%s", element->value.string->string);
+            break;
         default:
             fprintf(stderr, "Unknown type");
             exit(1);

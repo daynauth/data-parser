@@ -70,7 +70,7 @@ static void skip_whitespace_token(Token_iterator * iter){
  * TODO: implement test for unicode characters
  */
 static inline int is_json_char(const int ch){
-    return isalpha(ch);
+    return isalpha(ch) || isdigit(ch) || ch == '_' || ch == '-';
 }
 
 static inline int is_json_literal(const char ch){
@@ -127,9 +127,6 @@ int TokIter_GrabNext(Token_iterator * iter){
     iter->col++;
     return ch;
 }
-
-
-
 
 void TokIter_Free(Token_iterator * iter){
     if(iter != NULL)
@@ -199,7 +196,27 @@ static int JsonParser_parse_string_element(JsonParser * self, json_element_t * e
     return RESULT_OK;
 }
 
+static int JsonParser_parse_literal(JsonParser * self, json_element_t * element){
+    int pos = TokIter_GetIndex(self->iter) - 1;
+    consume_token_while_true(self->iter, is_json_char);
 
+    int length = TokIter_GetIndex(self->iter) - pos;
+    char * literal = malloc(length + 1);
+
+    copy_string(literal, self->iter->token_string + pos, length);
+
+    if(!is_json_string_literal(literal)){
+        free(literal);
+        return INVALID_JSON_CHARACTER;
+    }
+
+    element->type = JSON_TYPE_LITERAL;
+    element->value.string = json_string_create(length);
+    memcpy(element->value.string->string, literal, length);
+
+    free(literal);
+    return RESULT_OK;
+}
 
 /**
  * @brief Parse single member of the json object
@@ -337,6 +354,9 @@ static int JsonParser_parse_value(JsonParser * self, json_element_t * element){
         default:
             if(is_json_integer(ch)){ // number
                 JsonParser_parse_number_element(self, element);
+            }
+            else if(is_json_literal(ch)){
+                MATCH_OK(JsonParser_parse_literal(self, element));
             }
             else {
                 return INVALID_JSON_CHARACTER;
