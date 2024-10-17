@@ -155,7 +155,7 @@ json_array_t * json_array_init(){
     json_array_t * array = (json_array_t *)malloc_(sizeof(json_array_t));
     array->capacity = INIT_SIZE;
     array->length = 0;
-    array->elements = (json_element_t **)malloc_(sizeof(json_element_t *));
+    array->elements = (json_element_t **)malloc_(sizeof(json_element_t *) * array->capacity);
     return array;
 }
 

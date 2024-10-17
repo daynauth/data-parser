@@ -94,7 +94,12 @@ Token_iterator * TokIter_New(const char * token_string){
 
     return iter;
 }
-
+/**
+ * @brief Take a look at the next character in the string without moving the iterator
+ * 
+ * @param iter 
+ * @return int 
+ */
 int TokIter_PeekNext(Token_iterator * iter){
     return iter->token_string[iter->current];
 }
@@ -279,19 +284,6 @@ static int JsonParser_parse_array(JsonParser * self, json_element_t * element){
     json_array_t * array = json_array_init();
     element->type = JSON_TYPE_ARRAY;
     element->value.array = array;
-
-    // do{
-    //     skip_whitespace_token(self->iter);
-    //     if(TokIter_PeekNext(self->iter) == RIGHT_BRACKET)
-    //         break;
-
-    //     json_element_t * array_element = Json_init();
-    //     MATCH_OK(JsonParser_parse_value(self, array_element));
-    //     json_array_add_element(array, array_element);
-
-    //     skip_whitespace_token(self->iter);
-    // }while(TokIter_PeekNext(self->iter) == COMMA);
-
 
     while(1){
         skip_whitespace_token(self->iter);
