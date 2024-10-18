@@ -1,7 +1,8 @@
-#ifndef JSON_H
-#define JSON_H
+#ifndef JSON_T_H
+#define JSON_T_H
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #define LEFT_PAREN '{'
 #define RIGHT_PAREN '}'
@@ -9,96 +10,85 @@
 #define RIGHT_BRACKET ']'
 #define COLON ':'
 #define COMMA ','
-#define QUOTATION '"'
+#define QUOTATION '\"'
 #define WS1 ' '
 #define WS2 '\t'
 #define WS3 '\n'
 #define WS4 '\r'
 
 
-#define error(...) fprintf(stderr, __VA_ARGS__); exit(EXIT_FAILURE);
+enum json_type_t {
+    JSON_TYPE_NUMBER = 1,
+    JSON_TYPE_STRING = 2,
+    JSON_TYPE_BOOL = 3,
+    JSON_TYPE_OBJECT = 4,
+    JSON_TYPE_ARRAY = 5,
+    JSON_TYPE_LITERAL = 6
+};
 
-#define _malloc(fp, size) ({ \
-    fp = malloc((size)); \
-    if(fp == NULL) {error("memory could not be allocated")} \
-}) \
+typedef int json_char_t;
 
-typedef enum json_type_{
-    json_type_number,
-    json_type_string,
-    json_type_bool,
-    json_type_object,
-    json_type_array,
-    json_type_literal
-} json_type;
+struct json_object_t;
+typedef struct json_array_t json_array_t;
+typedef double json_number_t;
+struct json_element_t;
 
-typedef double json_number;
-typedef char * json_string;
-typedef int json_bool;
-
-// struct json_object;
-struct json_element;
-
-typedef struct json_object{
-    struct json_element * element;
+struct json_string_t {
     int length;
-}json_object;
+    json_char_t * string;
+};
 
-typedef struct json_array{
-    struct json_object **objects;
+union json_value_t {
+    struct json_object_t * object;
+    struct json_array_t * array;
+    struct json_string_t * string;
+    json_number_t number;
+    int boolean;
+};
+
+typedef struct json_element_t {
+    enum json_type_t type;
+    union json_value_t value;
+} json_element_t;
+
+struct json_array_t {
     int length;
-} json_array;
+    int capacity;
+    struct json_element_t ** elements;
+};
+
+struct json_object_kv_t {
+    struct json_string_t * key;
+    struct json_element_t * element;
+};
+
+struct json_object_t {
+    int length;
+    int capacity;
+    struct json_object_kv_t * elements;
+};
+
+struct json_string_t * json_string_create(int length);
+void json_string_destroy(struct json_string_t * js);
 
 
-typedef struct json_element{
-    json_type type;
-    char * key;
-    union{
-        json_number number;
-        json_string string;
-        json_bool boolean;
-        json_object * object;
-        json_array array;
-    } value;
-} json_element;
-
-#define json_value(type, value) (json_element){.type = type, .value = value}
+typedef struct json_element_t Json;
+Json * Json_init();
+void Json_destroy(Json * json);
+void Json_print(Json * json);
 
 
+void json_print(FILE * fp, json_element_t * element);
+
+struct json_object_t * json_object_create(void);
+int json_object_destroy(struct json_object_t * object);
+void json_object_t_add_element(struct json_object_t * jo, struct json_string_t * key, struct json_element_t * element);
 
 
-// Json Element functions
-json_element json_element_init(void);
-json_element json_element_init_with_key(const char * key);
-json_element json_element_number(double number);
-json_element json_element_string(const char * string);
-json_element json_element_bool(int boolean);
-json_element json_element_object_number(const char * key, double number);
-json_element json_element_object_string(const char * key, const char * string);
-json_element json_element_object_bool(const char * key, int boolean);
-json_element json_element_object_object(const char * key, json_object * object);
-json_element json_element_object_array(const char * key, json_object ** array, size_t length);
-void json_element_print(json_element * element, FILE * fp);
-
-
-// Functions for working with a json object ... eg. {"age" : 24}
-// Creating an empty json object {}
-json_object json_object_init(void);
-void json_object_print(json_object *jo);
-void json_object_add_element(json_object * jo, json_element * element);
-void json_object_add_string(json_object * jo, const char * string, const char * value);
-void json_object_add_number(json_object * jo, const char * string, double value);
-void json_object_add_bool(json_object * jo, const char * string, int boolean);
-void json_object_add_object(json_object * jo, const char * string, json_object * object);
-void json_object_add_array(json_object * jo, const char * string, json_object ** array, size_t length);
-
-
-#define json_object_add(jo, key, value) _Generic((value), \
-    char *: json_object_add_string, \
-    double: json_object_add_number, \
-    int: json_object_add_bool, \
-    json_object *: json_object_add_object \
-)(jo, key, value)
-
+// Json Array Functions
+json_array_t * json_array_init();
+void json_array_add_element(json_array_t * array, json_element_t * element);
+void json_array_destroy(json_array_t * array);
+void json_array_print(FILE * fp, json_array_t * array);
 
 #endif

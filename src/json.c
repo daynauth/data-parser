@@ -1,173 +1,197 @@
-
-#include <stdio.h>
+#include "json.h"
 #include <string.h>
 
-#include "json.h"
-
-static void print_literal(FILE * fp, const char * literal){
-    fprintf(fp, "%s", literal);
-}
-
-//help functions go here
-static void print_string(FILE * fp, const char * string){
-    fprintf(fp, "\"%s\"", string);
-}
-
-static void print_bool(FILE * fp, int boolean){
-    if(boolean == 0)
-        fprintf(fp, "false");
-    else
-        fprintf(fp, "true");
-}
-
-static void print_array(FILE * fp, json_array array){
-    printf("%d", array.length);
-    fprintf(fp, "%c", LEFT_BRACKET);
-    for(int i = 0; i < array.length; i++){
-        json_object_print(array.objects[i]);
-        if(i < array.length - 1){
-            fprintf(fp, "%c ", COMMA);
-        }
+static inline void * safe_malloc(size_t size, const char * file, const int line){
+    void * ar = malloc(size);
+    if(ar == NULL){
+        fprintf(stderr, "Memory could not be allocated in %s on line %d\n", file, line);
     }
-    fprintf(fp, "%c", RIGHT_BRACKET);
+
+    return ar;
 }
 
-void json_element_print(json_element * element, FILE * fp){
-    if(element == NULL)
+#define malloc_(size) safe_malloc((size), __FILE__, __LINE__)
+#define INIT_SIZE 10
+#define RESIZE_FACTOR 2
+
+
+struct json_string_t * json_string_create(int length){
+    struct json_string_t * js = malloc(sizeof(struct json_string_t));
+    js->length = length;
+    js->string = malloc(length + 1);
+    return js;
+}
+
+void json_string_destroy(struct json_string_t * js){
+    if(js == NULL)
         return;
 
-    if(element->key != NULL){
-        print_string(fp, element->key);
-        fprintf(fp, " %c ", COLON);
-    }
+    free(js->string);
+    free(js);
+}
 
-    switch(element->type){
-        case json_type_number:
-            fprintf(fp, "%f", element->value.number);
+Json * Json_init(){
+    Json * json = malloc(sizeof(Json));
+    return json;
+}
+
+void Json_destroy(Json * json){
+    if(json == NULL)
+        return;
+
+
+    switch(json->type){
+        case JSON_TYPE_STRING:
+            json_string_destroy(json->value.string);
             break;
-        case json_type_string:
-            print_string(fp, element->value.string);
+        case JSON_TYPE_OBJECT:
+            json_object_destroy(json->value.object);
             break;
-        case json_type_bool:
-            print_bool(fp, element->value.boolean);
-            break;
-        case json_type_object:
-            json_object_print(element->value.object);
-            break;
-        case json_type_array:
-            print_array(fp, element->value.array);
-            break;
-        case json_type_literal:
-            print_literal(fp, element->value.string);
+        case JSON_TYPE_ARRAY:
+            json_array_destroy(json->value.array);
             break;
         default:
             break;
-    }  
+    }
+
+    free(json);
+}
+
+void Json_print(Json * json){
+    json_print(stdout, json);
+}
+
+static void json_string_t_print(FILE * fp, struct json_string_t * js){
+    fprintf(fp, "\"%s\"", js->string);
 }
 
 
-json_element * new_json_element(json_type type){
-    json_element * element = malloc(sizeof(json_element));
-    element->type = type;
-    return element;
+void json_object_t_print(FILE * fp, struct json_object_t *jo){
+    if(jo == NULL )
+        return;
+
+    for(int i = 0; i < jo->length; i++){
+        struct json_object_kv_t kv = jo->elements[i];
+        json_string_t_print(fp, kv.key);
+        fprintf(fp, ": ");
+        json_print(stdout, kv.element);
+        if(i < jo->length - 1){
+            fprintf(stdout, ", ");
+        }
+    }
 }
 
+void json_print(FILE * fp, json_element_t * element){
+    if(element == NULL || element->type == 0)
+        return;
 
-// Json Element functions
-// Create an empty json element
-json_element json_element_init(void){
-    return (json_element){};
+    switch(element->type){
+        case JSON_TYPE_STRING:
+            json_string_t_print(fp, element->value.string);
+            break;
+        case JSON_TYPE_NUMBER:
+            fprintf(fp, "%f", element->value.number);
+            break;
+        case JSON_TYPE_OBJECT:
+            fprintf(fp, "{");
+            json_object_t_print(fp, element->value.object);
+            fprintf(fp, "}");
+            break;
+        case JSON_TYPE_ARRAY:
+            fprintf(fp, "[");
+            json_array_print(fp, element->value.array);
+            fprintf(fp, "]");
+            break;
+        case JSON_TYPE_LITERAL:
+            fprintf(fp, "%s", element->value.string->string);
+            break;
+        default:
+            fprintf(stderr, "Unknown type");
+            exit(1);
+            break;
+    }
 }
 
-json_element json_element_init_with_key(const char * key){
-    return (json_element){.key = (char *)key};
+static void json_object_resize(struct json_object_t * object){
+    if(object->length < object->capacity)
+        return;
+
+    object->capacity *= 2;
+    object->elements = realloc(object->elements, sizeof(struct json_object_kv_t) * object->capacity);
 }
 
-json_element json_element_number(double number){
-    return (json_element){.type = json_type_number, .value.number = number};
-}
-
-json_element json_element_string(const char * string){
-    return (json_element){.type = json_type_string, .value.string = (char *)string};
-}
-
-json_element json_element_bool(int boolean){
-    return (json_element){.type = json_type_bool, .value.boolean = boolean};
-}
-
-json_element json_element_object_number(const char* key, double number){
-    return (json_element){.type = json_type_number, .key = (char *)key, .value.number = number};
-}
-
-json_element json_element_object_string(const char * key, const char * string){
-    return (json_element){.type = json_type_string, .key = (char *)key, .value.string = (char*)string};
-}
-
-json_element json_element_object_bool(const char * key, int boolean){
-    return (json_element){.type = json_type_bool, .key = (char *)key, .value.boolean = boolean};  
-}
-
-json_element json_element_object_object(const char * key, json_object * object){
-    return (json_element){.type = json_type_object, .key = (char *)key, .value.object = object};
-}
-
-json_element json_element_object_array(const char * key, json_object ** array, size_t length){
-    json_array arr = {.objects = array, .length = (int)length};
-    return (json_element){.type = json_type_array, .key = (char *)key, .value.array = arr};
-}
-
-
-// Working with Json Objects
-
-// Create an empty object
-json_object  json_object_init(void){
-    json_object object = {.length = 0, .element = NULL};
+struct json_object_t * json_object_create(){
+    struct json_object_t * object = malloc(sizeof(struct json_object_t));
+    object->length = 0;
+    object->capacity = 10;
+    object->elements = malloc(sizeof(struct json_object_kv_t) * object->capacity);
     return object;
 }
 
+int json_object_destroy(struct json_object_t * object){
+    if(object == NULL)
+        return 0;
 
-void json_object_print(json_object *jo){
-    fprintf(stdout, "%c", LEFT_PAREN);
-    int i;
-    for(i = 0; i < jo->length; i++){
-        json_element_print(&jo->element[i], stdout);
-        if(i < (jo->length - 1)){
-            fprintf(stdout, "%c ", COMMA);
+    for(int i = 0; i < object->length; i++){
+        free(object->elements[i].key);
+        free(object->elements[i].element);
+    }
+
+    free(object->elements);
+    free(object);
+    return 1;
+}
+
+void json_object_t_add_element(struct json_object_t * jo, struct json_string_t * key, struct json_element_t * element){
+    json_object_resize(jo);
+
+    struct json_object_kv_t kv = {};
+    kv.key = key;
+    kv.element = malloc(sizeof(struct json_element_t));
+    memcpy(kv.element, element, sizeof(struct json_element_t));
+
+    jo->elements[jo->length] = kv;
+    jo->length++;
+}
+
+json_array_t * json_array_init(){
+    json_array_t * array = (json_array_t *)malloc_(sizeof(json_array_t));
+    array->capacity = INIT_SIZE;
+    array->length = 0;
+    array->elements = (json_element_t **)malloc_(sizeof(json_element_t *) * array->capacity);
+    return array;
+}
+
+static void json_array_reallocate(json_array_t * array){
+    if(array->length < array->capacity)
+        return;
+
+    array->capacity *= RESIZE_FACTOR;
+    array->elements = realloc(array->elements, sizeof(json_element_t * ) * array->capacity);
+}
+
+void json_array_add_element(json_array_t * array, json_element_t * element){
+    json_array_reallocate(array);
+    array->elements[array->length++] = element;
+}
+
+void json_array_destroy(json_array_t * array){
+    if(!array)
+        return;
+
+    for(int i = 0; i < array->length; i++){
+        Json_destroy(array->elements[i]);
+    }
+
+    free(array);
+}
+
+void json_array_print(FILE * fp, json_array_t * array){
+    for(int i = 0; i < array->length; i++){
+        Json_print(array->elements[i]);
+
+        if(i < array->length - 1){
+            fprintf(fp, ", ");
         }
     }
-
-    fprintf(stdout, "%c", RIGHT_PAREN);
-}
-
-void json_object_add_element(json_object * jo, json_element * element){
-    if(jo->element == NULL){
-        _malloc(jo->element, sizeof(json_element) * 10); // TODO: fix hard coded array size
-    }
-
-    jo->element[jo->length++] = *element;
-}
-
-void json_object_add_string(json_object * jo, const char * string, const char * value){
-    json_element element = json_element_object_string(string, value);
-    json_object_add_element(jo, &element);
-}
-
-void json_object_add_number(json_object * jo, const char * string, double value){
-    json_element  element = json_element_object_number(string, value);
-    json_object_add_element(jo, &element);
-}
-
-void json_object_add_bool(json_object * jo, const char * string, int boolean){
-    json_element  element = json_element_object_bool(string, boolean);
-    json_object_add_element(jo, &element);
-}
-
-void json_object_add_object(json_object * jo, const char * string, json_object * object){
-    json_element  element = json_element_object_object(string, object);
-    json_object_add_element(jo, &element);
-}
-
-void json_object_add_array(json_object * jo, const char * string, json_object ** array, size_t length){
-    json_element  element = json_element_object_array(string, array, length);
-    json_object_add_element(jo, &element);
 }

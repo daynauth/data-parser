@@ -1,7 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "json_t.h"
+#include "json.h"
 
 #define RESULT_OK 0
 #define INVALID_JSON_CHARACTER -1
