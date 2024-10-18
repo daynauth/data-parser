@@ -10,7 +10,10 @@
         "string": "c",
         "format": "c",
         "parser.h": "c",
-        "json.h": "c"
+        "json.h": "c",
+        "bitset": "c",
+        "forward_list": "c",
+        "list": "c"
     },
     "C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
         "clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling"

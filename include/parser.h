@@ -52,7 +52,8 @@ int TokIter_GetIndex(Token_iterator * iter);
 void TokIter_Free(Token_iterator * iter);
 
 JsonParser * Parser_New(const char * token_string);
-json_element_t * Parser_Parse(JsonParser * self);
+int Parser_Parse(JsonParser * self);
 int Parser_free(JsonParser * self);
+void parser_error_log(Token_iterator * iter, int error);
 
 #endif

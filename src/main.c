@@ -45,27 +45,57 @@ int read_file(const char * filename, char ** buffer){
     return 1;
 }
 
-int main(void){
+void test_json(const char * path, int current, int total){
     char * jsonstr;
-    read_file("./test_parsing/y_number_0e+1.json", &jsonstr);
+    read_file(path, &jsonstr);
 
     if(jsonstr == NULL){
         fprintf(stderr, "Could not read file\n");
         exit(EXIT_FAILURE);
     }
 
-    printf("%s\n", jsonstr);
-
 
     JsonParser * parser = Parser_New(jsonstr);
-    Json * element = Parser_Parse(parser);
-    Json_print(element);
-    printf("\n");
-    // test();
+    int outcome = Parser_Parse(parser);
+    if(outcome == RESULT_OK){
+        printf("Parse %d of %d Successfull\n", current, total);
+        printf("%s\n", jsonstr);
+        Json_print(parser->json);
+        printf("\n");
+    }else{
+        fprintf(stderr, "Parse Failed for file %s \n", path);
+        parser_error_log(parser->iter, outcome);
+    }
 
     Parser_free(parser);
 
     free(jsonstr);
+}
+
+int main(void){
+    char  * paths[] = {
+        "./test_parsing/y_array_arraysWithSpaces.json",
+        "./test_parsing/y_array_empty-string.json",
+        "./test_parsing/y_array_empty.json",
+        "./test_parsing/y_array_ending_with_newline.json",
+        "./test_parsing/y_array_false.json",
+        "./test_parsing/y_array_heterogeneous.json",
+        "./test_parsing/y_array_null.json",
+        "./test_parsing/y_array_with_1_and_newline.json",
+        "./test_parsing/y_array_with_leading_space.json",
+        "./test_parsing/y_array_with_several_null.json",
+        "./test_parsing/y_array_with_trailing_space.json",
+        "./test_parsing/y_number_0e+1.json",
+        "./test_parsing/y_number_0e1.json",
+        "./test_parsing/y_number_after_space.json",
+        "./test_parsing/y_number_double_close_to_zero.json",
+        "./test_parsing/y_number_int_with_exp.json",
+        "./test_parsing/y_number_minus_zero.json",
+        "./test_parsing/y_number_negative_int.json",
+    };
+    int total = sizeof(paths) / sizeof(paths[0]);
+    for(int i = 0; i < total; i++)
+        test_json(paths[i], i + 1, total);
 
     return 0;
 }

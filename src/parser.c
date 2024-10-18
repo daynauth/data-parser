@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <math.h>
 
 // need for unicode
 // #include <wchar.h>
@@ -147,26 +148,86 @@ JsonParser * Parser_New(const char * token_string){
 
 static int JsonParser_parse_value(JsonParser * self, json_element_t * element);
 
-static int JsonParser_parse_number_element(JsonParser * self, json_element_t * element){
-    int pos = TokIter_GetIndex(self->iter) - 1;
-
-    consume_token_while_true(self->iter, is_json_integer); //testing these out, may throw them away later
-
-    if(TokIter_PeekNext(self->iter) == '.'){
-        TokIter_GrabNext(self->iter);
-        consume_token_while_true(self->iter, isdigit);
+static int JsonParser_parse_fraction(JsonParser * self, double * base){
+    int count = 0;
+    while(is_integer(TokIter_PeekNext(self->iter))){
+        count++;
+        *base = *base * 10 + (TokIter_GrabNext(self->iter) - '0');
     }
 
-    int length = TokIter_GetIndex(self->iter) - pos;
-    char * number = malloc(length + 1);
+    *base = *base / pow(10, count);
 
-    copy_string(number, self->iter->token_string + pos, length);
+    return RESULT_OK;
+}
 
-    double num = atof(number);
-    free(number);
 
+/**
+ * @brief Parse the integer part of the number
+ * integer :=> digit | onenine digits | '-' digit | '-' onenine digits
+ * @param self 
+ * @param base 
+ * @return int 
+ */
+static int JsonParser_parse_integer(JsonParser * self, int * base){
+    while(is_integer(TokIter_PeekNext(self->iter))){
+        *base = *base * 10 + (TokIter_GrabNext(self->iter) - '0');
+    }
+
+    return RESULT_OK;
+}
+
+/**
+ * @brief Parse the number element
+ * Number :=> integer fraction exponent
+ * 
+ * @param self 
+ * @param element 
+ * @return int 
+ */
+static int JsonParser_parse_number_element(JsonParser * self, json_element_t * element){
+    int integer = 0;
+    int sign = 1;
+    int ch = TokIter_Previous(self->iter);
+
+    if(ch == '-'){
+        sign = -1;
+    }
+    else{
+        integer = ch - '0';
+    }
+
+    //parse the integer part
+    MATCH_OK(JsonParser_parse_integer(self, &integer));
+
+    // parse the fraction part
+    double fraction = 0.0;
+    if(TokIter_PeekNext(self->iter) == '.'){
+        TokIter_GrabNext(self->iter);
+        MATCH_OK(JsonParser_parse_fraction(self, &fraction));
+    }
+
+
+    int exponent = 1;
+    if(TokIter_PeekNext(self->iter) == 'e' || TokIter_PeekNext(self->iter) == 'E'){
+        TokIter_GrabNext(self->iter);
+        //parse the exponent part
+        if(TokIter_PeekNext(self->iter) == '-'){
+            TokIter_GrabNext(self->iter);
+            exponent = -1;
+        }
+        else if(TokIter_PeekNext(self->iter) == '+'){
+            TokIter_GrabNext(self->iter);
+        }
+
+
+        MATCH_OK(JsonParser_parse_integer(self, &exponent));
+        fraction = fraction * pow(10, exponent);
+    }
+
+    double number = (double)integer + fraction;
+    number = number * sign;
     element->type = JSON_TYPE_NUMBER;
-    element->value.number = num;
+    element->value.number = number;
 
     return RESULT_OK;
 }
@@ -393,7 +454,7 @@ static void print_error_debug(Token_iterator * iter){
     fprintf(stderr, "^\n");
 }
 
-static void parser_error_log(Token_iterator * iter, int error){
+void parser_error_log(Token_iterator * iter, int error){
     if (error == RESULT_OK)
         return;
         
@@ -437,10 +498,10 @@ static void parser_error_log(Token_iterator * iter, int error){
     exit(1);
 }
 
-json_element_t * Parser_Parse(JsonParser * self){
+int Parser_Parse(JsonParser * self){
     int outcome = Parser_parse_element(self, self->json);
-    parser_error_log(self->iter, outcome);
-    return self->json;
+    // parser_error_log(self->iter, outcome);
+    return outcome;
 }
 
 int Parser_free(JsonParser * self){

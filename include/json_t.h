@@ -30,6 +30,7 @@ typedef int json_char_t;
 
 struct json_object_t;
 typedef struct json_array_t json_array_t;
+typedef double json_number_t;
 struct json_element_t;
 
 struct json_string_t {
@@ -41,7 +42,7 @@ union json_value_t {
     struct json_object_t * object;
     struct json_array_t * array;
     struct json_string_t * string;
-    double number;
+    json_number_t number;
     int boolean;
 };
 

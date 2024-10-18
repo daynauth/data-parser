@@ -53,3 +53,4 @@ dkms.conf
 
 test_parsing/
 main
+.DS_Store 
